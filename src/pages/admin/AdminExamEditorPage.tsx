@@ -1,0 +1,404 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  createExam, 
+  getExam, 
+  updateExam, 
+  createQuestion, 
+  getQuestionsByExam, 
+  updateQuestion, 
+  deleteQuestion 
+} from '../../services/dbService';
+import { Exam, Question } from '../../types/exam';
+import { useContentStore } from '../../stores/useContentStore';
+import { ArrowLeft, Plus, Save, Trash2, Check, X, Edit, Eye, HelpCircle } from 'lucide-react';
+import clsx from 'clsx';
+import RichTextRenderer from '../../components/RichTextRenderer';
+
+const AdminExamEditorPage = () => {
+  const { examId } = useParams();
+  const navigate = useNavigate();
+  const { disciplines } = useContentStore();
+  const isEditing = !!examId;
+
+  const [loading, setLoading] = useState(false);
+  const [examData, setExamData] = useState<Partial<Exam>>({
+    name: '',
+    disciplineId: '',
+    year: new Date().getFullYear(),
+    season: '1ª época',
+    questionsCount: 0,
+    description: ''
+  });
+
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(true);
+  const [showHelp, setShowHelp] = useState(false);
+  const [questionForm, setQuestionForm] = useState<Partial<Question>>({
+    statement: '',
+    options: ['', '', '', ''],
+    correctOption: '',
+    explanation: ''
+  });
+
+  useEffect(() => {
+    if (isEditing && examId) {
+      fetchExamData(examId);
+    }
+  }, [examId]);
+
+  const fetchExamData = async (id: string) => {
+    setLoading(true);
+    try {
+      const exam = await getExam(id);
+      if (exam) {
+        setExamData(exam);
+        const q = await getQuestionsByExam(id);
+        setQuestions(q);
+      }
+    } catch (error) {
+      console.error("Error fetching exam:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveExam = async () => {
+    if (!examData.name || !examData.disciplineId) {
+      alert("Por favor, preencha todos os campos obrigatórios");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (isEditing && examId) {
+        await updateExam(examId, { 
+          ...examData, 
+          questionsCount: questions.length 
+        });
+        alert("Exame atualizado com sucesso");
+      } else {
+        const newId = await createExam(examData as Omit<Exam, 'id'>);
+        navigate(`/admin/exams/${newId}/edit`);
+      }
+    } catch (error) {
+      console.error("Error saving exam:", error);
+      alert("Falha ao salvar exame");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveQuestion = async () => {
+    if (!questionForm.statement || !questionForm.correctOption || questionForm.options?.some(o => !o)) {
+      alert("Por favor, preencha todos os campos da questão");
+      return;
+    }
+
+    if (!examId) return;
+
+    try {
+      if (editingQuestionId) {
+        await updateQuestion(editingQuestionId, questionForm);
+        setQuestions(questions.map(q => q.id === editingQuestionId ? { ...q, ...questionForm } as Question : q));
+        setEditingQuestionId(null);
+      } else {
+        const newQ = { ...questionForm, examId } as Omit<Question, 'id'>;
+        const id = await createQuestion(newQ);
+        setQuestions([...questions, { ...newQ, id }]);
+      }
+      
+      // Reset form
+      setQuestionForm({
+        statement: '',
+        options: ['', '', '', ''],
+        correctOption: '',
+        explanation: ''
+      });
+      
+      // Update exam question count
+      await updateExam(examId, { questionsCount: questions.length + (editingQuestionId ? 0 : 1) });
+      
+    } catch (error) {
+      console.error("Error saving question:", error);
+    }
+  };
+
+  const handleEditQuestion = (question: Question) => {
+    setEditingQuestionId(question.id);
+    setQuestionForm(question);
+  };
+
+  const handleDeleteQuestion = async (id: string) => {
+    if (window.confirm("Excluir esta questão?")) {
+      try {
+        await deleteQuestion(id);
+        setQuestions(questions.filter(q => q.id !== id));
+        if (examId) {
+          await updateExam(examId, { questionsCount: questions.length - 1 });
+        }
+      } catch (error) {
+        console.error("Error deleting question:", error);
+      }
+    }
+  };
+
+  const handleOptionChange = (index: number, value: string) => {
+    const newOptions = [...(questionForm.options || [])];
+    newOptions[index] = value;
+    setQuestionForm({ ...questionForm, options: newOptions });
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8 pb-20">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <button onClick={() => navigate('/admin/exams')} className="text-gray-500 hover:text-gray-700">
+          <ArrowLeft size={24} />
+        </button>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-800">
+          {isEditing ? 'Editar Exame' : 'Criar Novo Exame'}
+        </h1>
+      </div>
+
+      {/* Exam Metadata Form */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 space-y-4">
+        <h2 className="text-lg font-bold text-gray-700 border-b pb-2">Detalhes do Exame</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Exame</label>
+            <input
+              type="text"
+              value={examData.name}
+              onChange={e => setExamData({ ...examData, name: e.target.value })}
+              className="w-full p-2 border rounded-lg"
+              placeholder="e.g. Exame 2014 - 1ª Época"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Disciplina</label>
+            <select
+              value={examData.disciplineId}
+              onChange={e => setExamData({ ...examData, disciplineId: e.target.value })}
+              className="w-full p-2 border rounded-lg"
+            >
+              <option value="">Selecionar Disciplina</option>
+              {disciplines.map(d => (
+                <option key={d.id} value={d.id}>{d.title}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ano</label>
+            <input
+              type="number"
+              value={examData.year}
+              onChange={e => setExamData({ ...examData, year: parseInt(e.target.value) })}
+              className="w-full p-2 border rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Época</label>
+            <select
+              value={examData.season}
+              onChange={e => setExamData({ ...examData, season: e.target.value })}
+              className="w-full p-2 border rounded-lg"
+            >
+              <option value="1ª época">1ª época</option>
+              <option value="2ª época">2ª época</option>
+              <option value="Extraordinário">Extraordinário</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={handleSaveExam}
+            disabled={loading}
+            className="flex items-center gap-2 bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-hover"
+          >
+            <Save size={20} />
+            {isEditing ? 'Atualizar Detalhes' : 'Criar Exame'}
+          </button>
+        </div>
+      </div>
+
+      {/* Questions Section - Only visible if editing */}
+      {isEditing && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-800">Questões ({questions.length})</h2>
+          </div>
+
+          {/* Question Form */}
+          <div className="bg-gray-50 p-4 md:p-6 rounded-xl border-2 border-dashed border-gray-300">
+            <h3 className="font-bold text-gray-700 mb-4">{editingQuestionId ? 'Edit Question' : 'Add New Question'}</h3>
+            <div className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">Statement</label>
+                <button
+                  type="button"
+                  onClick={() => setShowHelp(!showHelp)}
+                  className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                >
+                  <HelpCircle size={14} />
+                  Syntax Help
+                </button>
+              </div>
+              {showHelp && (
+                <div className="mb-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs space-y-1">
+                  <p className="font-bold text-blue-900">LaTeX Math:</p>
+                  <p><code className="bg-white px-1 rounded">$x^2 + 5$</code> → inline formula</p>
+                  <p><code className="bg-white px-1 rounded">$$\frac{'{a}'}{'{b}'}$$</code> → block formula</p>
+                  <p className="font-bold text-blue-900 mt-2">Images:</p>
+                  <p><code className="bg-white px-1 rounded">![description](image-url)</code></p>
+                </div>
+              )}
+              <textarea
+                value={questionForm.statement}
+                onChange={e => setQuestionForm({ ...questionForm, statement: e.target.value })}
+                className="w-full p-2 border rounded-lg h-24 font-mono text-sm"
+                placeholder="Digite o texto da questão... Suporta LaTeX: $inline$ ou $$block$$, Imagens: ![alt](url)"
+              />
+              {showPreview && questionForm.statement && (
+                <div className="mt-2 p-3 bg-gray-50 rounded border">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs text-gray-500 font-medium">Preview:</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowPreview(false)}
+                      className="text-xs text-gray-400 hover:text-gray-600"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <RichTextRenderer content={questionForm.statement} />
+                </div>
+              )}
+              {!showPreview && questionForm.statement && (
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(true)}
+                  className="mt-1 text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                >
+                  <Eye size={14} />
+                  Show Preview
+                </button>
+              )}
+            </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {questionForm.options?.map((opt, idx) => (
+                  <div key={idx}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Option {String.fromCharCode(65 + idx)}</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={opt}
+                        onChange={e => handleOptionChange(idx, e.target.value)}
+                        className={clsx(
+                          "w-full p-2 border rounded-lg",
+                          questionForm.correctOption === opt && opt !== '' ? "border-green-500 ring-1 ring-green-500 bg-green-50" : ""
+                        )}
+                        placeholder={`Opção ${String.fromCharCode(65 + idx)}`}
+                      />
+                      <button
+                        onClick={() => setQuestionForm({ ...questionForm, correctOption: opt })}
+                        className={clsx(
+                          "p-2 rounded-lg border",
+                          questionForm.correctOption === opt && opt !== '' 
+                            ? "bg-green-500 text-white border-green-500" 
+                            : "bg-white text-gray-400 border-gray-300 hover:bg-gray-50"
+                        )}
+                        title="Marcar como Correta"
+                        disabled={!opt}
+                      >
+                        <Check size={20} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Explicação (Opcional)</label>
+                <textarea
+                  value={questionForm.explanation}
+                  onChange={e => setQuestionForm({ ...questionForm, explanation: e.target.value })}
+                  className="w-full p-2 border rounded-lg h-20"
+                  placeholder="Explique por que a resposta está correta..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                {editingQuestionId && (
+                  <button
+                    onClick={() => {
+                      setEditingQuestionId(null);
+                      setQuestionForm({ statement: '', options: ['', '', '', ''], correctOption: '', explanation: '' });
+                    }}
+                    className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg"
+                  >
+                    Cancelar
+                  </button>
+                )}
+                <button
+                  onClick={handleSaveQuestion}
+                  className="bg-secondary text-white px-6 py-2 rounded-lg hover:bg-secondary-hover"
+                >
+                  {editingQuestionId ? 'Atualizar Questão' : 'Adicionar Questão'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Questions List */}
+          <div className="space-y-4">
+            {questions.map((q, idx) => (
+              <div key={q.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-start gap-3">
+                    <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold mt-1">
+                      #{idx + 1}
+                    </span>
+                    <div>
+                      <p className="font-medium text-gray-800 break-words">
+                        <RichTextRenderer content={q.statement} />
+                      </p>
+                      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-600">
+                        {q.options.map((opt, i) => (
+                          <div key={i} className={clsx("flex items-center gap-2", opt === q.correctOption && "text-green-600 font-bold")}>
+                            <span className="w-4">{String.fromCharCode(65 + i)}.</span>
+                            {opt}
+                            {opt === q.correctOption && <Check size={14} />}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => handleEditQuestion(q)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                  >
+                    <Edit size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteQuestion(q.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AdminExamEditorPage;
