@@ -170,63 +170,165 @@ const StudyPage = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto h-[calc(100vh-100px)] flex flex-col">
+    <div className="h-[calc(100vh-80px)] flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <button 
-          onClick={() => navigate(`/disciplines/${exam.disciplineId}/exams`)} 
-          className="text-gray-400 hover:text-gray-600"
-        >
-          <ArrowLeft size={24} />
-        </button>
-        <div className="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-primary transition-all duration-500 ease-out"
-            style={{ width: `${progress}%` }}
-          />
+      <div className="bg-white border-b px-4 py-3 flex justify-between items-center shadow-sm z-10">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => navigate(`/disciplines/${exam.disciplineId}/exams`)} 
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <div>
+            <h1 className="font-bold text-gray-800 truncate max-w-[200px] md:max-w-md">{exam.name}</h1>
+            <p className="text-xs text-gray-500">Questão {currentQuestionIndex + 1} de {questions.length}</p>
+          </div>
         </div>
-        <div className="text-gray-600 font-bold">
-          {currentQuestionIndex + 1} / {questions.length}
-        </div>
-      </div>
-
-      {/* Question */}
-      <div className="flex-1 flex flex-col justify-center pb-24 md:pb-0">
-        <RichTextRenderer 
-          content={currentQuestion.statement}
-          className="text-xl md:text-3xl font-bold text-gray-800 mb-6 md:mb-8 text-center px-2"
-        />
-
-        <div className="grid grid-cols-1 gap-4">
-          {currentQuestion.options.map((option) => (
-            <button
-              key={option}
-              onClick={() => status === 'idle' && setSelectedOption(option)}
-              disabled={status !== 'idle'}
-              className={clsx(
-                "p-3 md:p-4 rounded-xl border-2 text-base md:text-lg font-bold transition-all text-left",
-                selectedOption === option
-                  ? "border-secondary bg-blue-50 text-secondary"
-                  : "border-gray-200 hover:bg-gray-50 text-gray-700",
-                status === 'correct' && option === currentQuestion.correctOption && "bg-green-100 border-primary text-primary",
-                status === 'incorrect' && option === selectedOption && "bg-red-100 border-danger text-danger"
-              )}
-            >
-              <RichTextRenderer content={option} />
-            </button>
-          ))}
+        <div className="text-sm font-bold text-gray-500">
+          Modo Estudo
         </div>
       </div>
 
-      {/* Footer / Feedback */}
-      <div className={clsx(
-        "fixed bottom-0 left-0 right-0 p-4 md:p-8 border-t-2 z-10",
-        status === 'idle' ? "bg-white border-gray-200" :
-        status === 'correct' ? "bg-green-100 border-green-200" :
-        "bg-red-100 border-red-200"
-      )}>
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          {status === 'idle' ? (
+      <div className="flex-1 flex overflow-hidden">
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24">
+          <div className="max-w-3xl mx-auto space-y-8">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <div className="flex justify-between items-start mb-4">
+                <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-lg text-sm font-bold">
+                  Questão {currentQuestionIndex + 1}
+                </span>
+              </div>
+              
+              <div className="text-lg md:text-xl font-medium text-gray-800 mb-8">
+                <RichTextRenderer content={currentQuestion.statement} />
+              </div>
+
+              <div className="space-y-3">
+                {currentQuestion.options.map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => status === 'idle' && setSelectedOption(option)}
+                    disabled={status !== 'idle'}
+                    className={clsx(
+                      "w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3",
+                      selectedOption === option
+                        ? "border-secondary bg-blue-50 text-secondary"
+                        : "border-gray-100 hover:border-gray-300 text-gray-700",
+                      status === 'correct' && option === currentQuestion.correctOption && "bg-green-100 border-primary text-primary",
+                      status === 'incorrect' && option === selectedOption && "bg-red-100 border-danger text-danger"
+                    )}
+                  >
+                    <div className={clsx(
+                      "w-8 h-8 rounded-full flex items-center justify-center border-2 text-sm font-bold",
+                      // Logic for circle color
+                      status === 'correct' && option === currentQuestion.correctOption ? "border-primary bg-primary text-white" :
+                      status === 'incorrect' && option === selectedOption ? "border-danger bg-danger text-white" :
+                      selectedOption === option ? "border-secondary bg-secondary text-white" :
+                      "border-gray-300 text-gray-400"
+                    )}>
+                      {/* Option Letter (A, B, C...) could be added here if we had index, but option is string. 
+                          We can map index in the loop above if needed, but for now just showing check/x or empty */}
+                       {status === 'correct' && option === currentQuestion.correctOption ? <Check size={16} /> :
+                        status === 'incorrect' && option === selectedOption ? <X size={16} /> :
+                        null}
+                    </div>
+                    <div className="flex-1">
+                      <RichTextRenderer content={option} />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+             {/* Feedback Section (Only visible when answered) */}
+             {status !== 'idle' && (
+              <div className={clsx(
+                "p-6 rounded-2xl border-2 flex items-start gap-4",
+                status === 'correct' ? "bg-green-50 border-green-100" : "bg-red-50 border-red-100"
+              )}>
+                <div className={clsx(
+                  "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+                  status === 'correct' ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                )}>
+                  {status === 'correct' ? <Check size={24} /> : <X size={24} />}
+                </div>
+                <div>
+                  <h3 className={clsx("font-bold text-lg mb-1", status === 'correct' ? "text-green-800" : "text-red-800")}>
+                    {status === 'correct' ? 'Excellent!' : 'Incorrect'}
+                  </h3>
+                  {status === 'incorrect' && (
+                    <div className="text-red-600 mb-2">
+                      <span className="font-bold">Correct answer: </span>
+                      <RichTextRenderer content={currentQuestion.correctOption} />
+                    </div>
+                  )}
+                  {currentQuestion.explanation && (
+                    <div className="text-gray-600 text-sm bg-white/50 p-3 rounded-lg mt-2">
+                      <span className="font-bold block mb-1">Explanation:</span>
+                      <RichTextRenderer content={currentQuestion.explanation} />
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={handleNext}
+                  className={clsx(
+                    "ml-auto px-6 py-2 rounded-xl font-bold text-white uppercase tracking-wide transition-all shadow-sm active:translate-y-1",
+                    status === 'correct' ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"
+                  )}
+                >
+                  Continue
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sidebar (Desktop) */}
+        <div className="hidden md:flex w-72 bg-gray-50 border-l flex-col p-4">
+          <h3 className="font-bold text-gray-700 mb-4">Navegação</h3>
+          <div className="grid grid-cols-5 gap-2">
+            {questions.map((q, idx) => (
+              <button
+                key={q.id}
+                onClick={() => {
+                  setCurrentQuestionIndex(idx);
+                  setStatus('idle');
+                  setSelectedOption(null);
+                }}
+                className={clsx(
+                  "aspect-square rounded-lg flex items-center justify-center text-sm font-bold transition-colors relative",
+                  currentQuestionIndex === idx ? "ring-2 ring-primary ring-offset-2" : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-100"
+                  // Add logic here if we want to show answered state in grid for study mode
+                )}
+              >
+                {idx + 1}
+              </button>
+            ))}
+          </div>
+          
+          {/* Check Button in Sidebar for Desktop */}
+          <div className="mt-auto">
+             {status === 'idle' && (
+              <button
+                onClick={handleCheck}
+                disabled={!selectedOption}
+                className={clsx(
+                  "w-full py-3 rounded-xl font-bold text-white uppercase tracking-wide transition-all shadow-[0_4px_0_0_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-[4px]",
+                  selectedOption ? "bg-primary hover:bg-primary-hover shadow-primary-shade" : "bg-gray-300 cursor-not-allowed"
+                )}
+              >
+                Check
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Footer */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-20">
+         {status === 'idle' ? (
             <button
               onClick={handleCheck}
               disabled={!selectedOption}
@@ -238,38 +340,16 @@ const StudyPage = () => {
               Check
             </button>
           ) : (
-            <div className="w-full flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={clsx(
-                  "w-12 h-12 rounded-full flex items-center justify-center",
-                  status === 'correct' ? "bg-white text-primary" : "bg-white text-danger"
-                )}>
-                  {status === 'correct' ? <Check size={32} /> : <X size={32} />}
-                </div>
-                <div>
-                  <h3 className={clsx("text-xl font-bold", status === 'correct' ? "text-primary-shade" : "text-danger-shade")}>
-                    {status === 'correct' ? 'Excellent!' : 'Incorrect'}
-                  </h3>
-                  {status === 'incorrect' && (
-                    <div className="text-danger-shade">
-                      <span>Correct answer: </span>
-                      <RichTextRenderer content={currentQuestion.correctOption} />
-                    </div>
-                  )}
-                </div>
-              </div>
-              <button
+             <button
                 onClick={handleNext}
                 className={clsx(
-                  "py-3 px-8 rounded-xl font-bold text-white uppercase tracking-wide transition-all shadow-[0_4px_0_0_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-[4px]",
-                  status === 'correct' ? "bg-primary hover:bg-primary-hover shadow-primary-shade" : "bg-danger hover:bg-danger-hover shadow-danger-shade"
+                  "w-full py-3 rounded-xl font-bold text-white uppercase tracking-wide transition-all shadow-[0_4px_0_0_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-[4px]",
+                  status === 'correct' ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"
                 )}
               >
                 Continue
               </button>
-            </div>
           )}
-        </div>
       </div>
     </div>
   );

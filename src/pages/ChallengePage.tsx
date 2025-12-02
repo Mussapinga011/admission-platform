@@ -19,7 +19,7 @@ const ChallengePage = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [flaggedQuestions, setFlaggedQuestions] = useState<string[]>([]);
-  const [timeLeft, setTimeLeft] = useState(90 * 60); // 90 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(90 * 30); // 90 minutes in seconds
   const [isFinished, setIsFinished] = useState(false);
   const [score, setScore] = useState(0);
 

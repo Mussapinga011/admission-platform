@@ -57,6 +57,18 @@ function App() {
               <ChallengePage />
             </ProtectedRoute>
           } />
+          
+          <Route path="/challenge" element={
+            <ProtectedRoute>
+              <ChallengeSelectDisciplinePage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/study/:examId" element={
+            <ProtectedRoute>
+              <StudyPage />
+            </ProtectedRoute>
+          } />
 
 
           
