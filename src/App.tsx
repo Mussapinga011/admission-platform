@@ -63,6 +63,10 @@ function App() {
               <ChallengeSelectDisciplinePage />
             </ProtectedRoute>
           } />
+          
+          <Route path="/challenge/select-discipline" element={
+            <Navigate to="/challenge" replace />
+          } />
 
           <Route path="/study/:examId" element={
             <ProtectedRoute>

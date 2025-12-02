@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useContentStore } from '../stores/useContentStore';
 import { ArrowRight } from 'lucide-react';
@@ -7,6 +7,7 @@ import clsx from 'clsx';
 const DisciplinesPage = () => {
   const { disciplines, fetchDisciplines, loading } = useContentStore();
   const navigate = useNavigate();
+  const [selectedUniversity, setSelectedUniversity] = useState<'UEM' | 'UP'>('UEM');
 
   useEffect(() => {
     fetchDisciplines();
@@ -20,31 +21,76 @@ const DisciplinesPage = () => {
     );
   }
 
+  const filteredDisciplines = disciplines.filter(d => d.university === selectedUniversity);
+
+  const DisciplineCard = ({ discipline }: { discipline: any }) => (
+    <button 
+      onClick={() => navigate(`/disciplines/${discipline.id}/exams`)}
+      className="bg-white rounded-2xl shadow-lg overflow-hidden border-2 border-gray-100 hover:border-secondary hover:shadow-xl transition-all text-left group"
+    >
+      <div className={clsx("h-32 flex items-center justify-center text-5xl transition-transform group-hover:scale-110", discipline.color)}>
+        {discipline.icon}
+      </div>
+      <div className="p-6">
+        <h2 className="text-xl font-bold text-gray-800 mb-2">{discipline.title}</h2>
+        <p className="text-gray-500 text-sm mb-4">
+          Access past exams and practice questions for {discipline.title}.
+        </p>
+        <div className="flex items-center text-secondary font-bold text-sm uppercase tracking-wide">
+          View Exams <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
+        </div>
+      </div>
+    </button>
+  );
+
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-gray-800">Choose a Discipline</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {disciplines.map((discipline) => (
-          <button 
-            key={discipline.id}
-            onClick={() => navigate(`/disciplines/${discipline.id}/exams`)}
-            className="bg-white rounded-2xl shadow-lg overflow-hidden border-2 border-gray-100 hover:border-secondary hover:shadow-xl transition-all text-left group"
+    <div className="space-y-8 pb-12">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold text-gray-800">Choose a Discipline</h1>
+        
+        {/* University Tabs */}
+        <div className="bg-gray-100 p-1 rounded-xl inline-flex">
+          <button
+            onClick={() => setSelectedUniversity('UEM')}
+            className={clsx(
+              "px-6 py-2 rounded-lg text-sm font-bold transition-all",
+              selectedUniversity === 'UEM' 
+                ? "bg-white text-primary shadow-sm" 
+                : "text-gray-500 hover:text-gray-700"
+            )}
           >
-            <div className={clsx("h-32 flex items-center justify-center text-5xl transition-transform group-hover:scale-110", discipline.color)}>
-              {discipline.icon}
-            </div>
-            <div className="p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-2">{discipline.title}</h2>
-              <p className="text-gray-500 text-sm mb-4">
-                Access past exams and practice questions for {discipline.title}.
-              </p>
-              <div className="flex items-center text-secondary font-bold text-sm uppercase tracking-wide">
-                View Exams <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
+            UEM
           </button>
-        ))}
+          <button
+            onClick={() => setSelectedUniversity('UP')}
+            className={clsx(
+              "px-6 py-2 rounded-lg text-sm font-bold transition-all",
+              selectedUniversity === 'UP' 
+                ? "bg-white text-primary shadow-sm" 
+                : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            UP
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-xl font-bold text-gray-700 mb-6">
+          {selectedUniversity === 'UEM' ? 'Universidade Eduardo Mondlane' : 'Universidade Pedagógica'}
+        </h2>
+        
+        {filteredDisciplines.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredDisciplines.map((discipline) => (
+              <DisciplineCard key={discipline.id} discipline={discipline} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+            <p className="text-gray-500">No disciplines found for this university.</p>
+          </div>
+        )}
       </div>
     </div>
   );

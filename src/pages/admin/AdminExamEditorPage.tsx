@@ -31,6 +31,8 @@ const AdminExamEditorPage = () => {
     description: ''
   });
 
+  const [selectedUniversity, setSelectedUniversity] = useState<'UEM' | 'UP'>('UEM');
+
   const [questions, setQuestions] = useState<Question[]>([]);
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(true);
@@ -177,6 +179,20 @@ const AdminExamEditorPage = () => {
             />
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Universidade</label>
+            <select
+              value={selectedUniversity}
+              onChange={e => {
+                setSelectedUniversity(e.target.value as 'UEM' | 'UP');
+                setExamData({ ...examData, disciplineId: '' }); // Reset discipline when university changes
+              }}
+              className="w-full p-2 border rounded-lg"
+            >
+              <option value="UEM">UEM</option>
+              <option value="UP">UP</option>
+            </select>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Disciplina</label>
             <select
               value={examData.disciplineId}
@@ -184,8 +200,10 @@ const AdminExamEditorPage = () => {
               className="w-full p-2 border rounded-lg"
             >
               <option value="">Selecionar Disciplina</option>
-              {disciplines.map(d => (
-                <option key={d.id} value={d.id}>{d.title}</option>
+              {disciplines
+                .filter(d => d.university === selectedUniversity)
+                .map(d => (
+                  <option key={d.id} value={d.id}>{d.title}</option>
               ))}
             </select>
           </div>
