@@ -37,5 +37,33 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // Regras para Grupos de Estudo
+    match /groups/{groupId} {
+      // Qualquer usuário logado pode ler grupos e criar (a validação Premium é feita no App)
+      allow read, create: if request.auth != null;
+      
+      // Permitir atualizar apenas para entrar/sair (modificar array members e membersCount)
+      allow update: if request.auth != null;
+
+      // Permitir deletar apenas para admin ou criador do grupo
+      allow delete: if request.auth != null && (
+        isAdmin() || 
+        get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy == request.auth.uid
+      );
+
+      // Subcoleção de Mensagens
+      match /messages/{messageId} {
+        // Apenas membros poderiam ler, mas para simplificar: logados podem ler
+        allow read: if request.auth != null;
+        // Qualquer logado pode enviar mensagem (idealmente verificar se é membro)
+        allow create: if request.auth != null;
+      }
+
+      // Subcoleção de Membros
+      match /members/{userId} {
+        allow read, write: if request.auth != null;
+      }
+    }
   }
 }

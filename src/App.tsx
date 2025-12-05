@@ -21,10 +21,13 @@ import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminVideosPage from './pages/admin/AdminVideosPage';
 import AdminABTestsPage from './pages/admin/AdminABTestsPage';
 import AdminABTestEditorPage from './pages/admin/AdminABTestEditorPage';
+import AdminGroupsPage from './pages/admin/AdminGroupsPage';
 import VideoLessonsPage from './pages/VideoLessonsPage';
 import SimulationConfigPage from './pages/SimulationConfigPage';
 import SimulationPage from './pages/SimulationPage';
 import SimulationResultPage from './pages/SimulationResultPage';
+import GroupsPage from './pages/GroupsPage';
+import GroupChatPage from './pages/GroupChatPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import { useAuthStore } from './stores/useAuthStore';
@@ -129,6 +132,17 @@ function App() {
               <SimulationResultPage />
             </ProtectedRoute>
           } />
+
+          <Route path="/groups" element={
+            <ProtectedRoute>
+              <GroupsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/groups/:groupId" element={
+            <ProtectedRoute>
+              <GroupChatPage />
+            </ProtectedRoute>
+          } />
           
           <Route path="/ranking" element={
             <ProtectedRoute>
@@ -188,6 +202,11 @@ function App() {
           <Route path="/admin/ab-tests/edit/:testId" element={
             <AdminRoute>
               <AdminABTestEditorPage />
+            </AdminRoute>
+          } />
+          <Route path="/admin/groups" element={
+            <AdminRoute>
+              <AdminGroupsPage />
             </AdminRoute>
           } />
         </Route>

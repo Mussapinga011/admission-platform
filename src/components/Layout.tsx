@@ -7,7 +7,8 @@ import {
   Download,
   Zap,
   Video,
-  Target
+  Target,
+  Users
 } from 'lucide-react';
 import { signOut } from '../services/authService';
 import clsx from 'clsx';
@@ -21,6 +22,7 @@ const Layout = () => {
     { name: 'Aulas', path: '/lessons', icon: Video },
     { name: 'Desafio', path: '/challenge', icon: Zap },
     { name: 'Simulados', path: '/simulation/config', icon: Target },
+    { name: 'Grupos', path: '/groups', icon: Users },
     { name: 'Ranking', path: '/ranking', icon: Trophy },
     { name: 'Downloads', path: '/downloads', icon: Download },
     { name: 'Perfil', path: '/profile', icon: User },
