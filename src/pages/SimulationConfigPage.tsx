@@ -80,9 +80,7 @@ const SimulationConfigPage = () => {
             Desbloquear Agora 🚀
           </button>
           
-          <p className="text-sm text-gray-400 mt-4">
-            A partir de apenas 10 MZN/dia
-          </p>
+          
         </div>
       </div>
     );

@@ -5,6 +5,7 @@ import {
   activateTest, 
   pauseTest, 
   completeTest,
+  deleteABTest,
   calculateConversionRate,
   getTestWinner
 } from '../../services/abTestService';
@@ -45,6 +46,13 @@ const AdminABTestsPage = () => {
   const handleComplete = async (testId: string) => {
     if (confirm('Completar este teste? Isso irá finalizá-lo permanentemente.')) {
       await completeTest(testId);
+      fetchTests();
+    }
+  };
+
+  const handleDelete = async (testId: string) => {
+    if (confirm('Tem certeza que deseja excluir este teste? Esta ação não pode ser desfeita.')) {
+      await deleteABTest(testId);
       fetchTests();
     }
   };
@@ -185,6 +193,13 @@ const AdminABTestsPage = () => {
                       title="Editar"
                     >
                       <Edit size={20} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(test.id)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Excluir"
+                    >
+                      <Trash2 size={20} />
                     </button>
                   </div>
                 </div>

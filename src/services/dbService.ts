@@ -68,6 +68,11 @@ export const updateUserProfile = async (uid: string, data: Partial<UserProfile>)
   await updateDoc(userRef, data);
 };
 
+export const deleteUserProfile = async (uid: string) => {
+  const userRef = doc(db, 'users', uid);
+  await deleteDoc(userRef);
+};
+
 export const updateUserScore = async (uid: string) => {
   const userRef = doc(db, 'users', uid);
   const userSnap = await getDoc(userRef);

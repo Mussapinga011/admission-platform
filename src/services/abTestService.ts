@@ -9,7 +9,8 @@ import {
   where,
   orderBy,
   Timestamp,
-  increment
+  increment,
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { ABTest, ABTestCreate, ABTestLocation, ABTestStatus } from '../types/abTest';
@@ -220,6 +221,22 @@ export const completeTest = async (testId: string): Promise<void> => {
     testCache.clear();
   } catch (error) {
     console.error('Error completing test:', error);
+    throw error;
+  }
+};
+
+/**
+ * Excluir teste A/B (apenas admin)
+ */
+export const deleteABTest = async (testId: string): Promise<void> => {
+  try {
+    const testRef = doc(db, AB_TESTS_COLLECTION, testId);
+    await deleteDoc(testRef);
+    
+    // Limpar cache
+    testCache.clear();
+  } catch (error) {
+    console.error('Error deleting test:', error);
     throw error;
   }
 };

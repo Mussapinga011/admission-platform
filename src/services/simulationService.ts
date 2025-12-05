@@ -381,11 +381,12 @@ export const getUserSimulations = async (userId: string): Promise<SimulationResu
   try {
     console.log('📊 Fetching simulations for user:', userId);
     
+    // Query sem orderBy para evitar necessidade de índice composto
+    // A ordenação será feita no cliente
     const q = query(
       collection(db, SIMULATIONS_COLLECTION),
       where('userId', '==', userId),
-      orderBy('createdAt', 'desc'),
-      limit(10) // Reduzido de 20 para 10 para economizar leituras
+      limit(20) // Buscar mais já que vamos ordenar no cliente
     );
 
     const snapshot = await getDocs(q);
@@ -402,12 +403,20 @@ export const getUserSimulations = async (userId: string): Promise<SimulationResu
         id: doc.id,
         ...simulationData,
         // Manter apenas o count de questões, não o array completo
-        totalQuestions: data.totalQuestions || (questions?.length || 0)
+        totalQuestions: data.totalQuestions || (questions?.length || 0),
+        createdAt: data.createdAt // Garantir que createdAt está presente
       } as SimulationResult;
     });
     
-    console.log('📋 Simulations loaded:', simulations.length);
-    return simulations;
+    // Ordenar no cliente por createdAt (mais recente primeiro)
+    const sortedSimulations = simulations.sort((a, b) => {
+      const timeA = a.createdAt?.toMillis?.() || 0;
+      const timeB = b.createdAt?.toMillis?.() || 0;
+      return timeB - timeA; // Descendente
+    }).slice(0, 10); // Limitar a 10 após ordenar
+    
+    console.log('📋 Simulations loaded:', sortedSimulations.length);
+    return sortedSimulations;
   } catch (error) {
     console.error('❌ Error fetching user simulations:', error);
     return [];

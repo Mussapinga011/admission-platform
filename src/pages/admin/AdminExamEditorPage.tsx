@@ -43,6 +43,8 @@ const AdminExamEditorPage = () => {
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
+  const [showExplanationPreview, setShowExplanationPreview] = useState(true);
+  const [showExplanationHelp, setShowExplanationHelp] = useState(false);
   const [questionForm, setQuestionForm] = useState<Partial<Question>>({
     statement: '',
     options: ['', '', '', ''],
@@ -328,21 +330,21 @@ const AdminExamEditorPage = () => {
                 {questionForm.options?.map((opt, idx) => (
                   <div key={idx}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Opção {String.fromCharCode(65 + idx)}</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
+                    <div className="flex gap-2 items-start">
+                      <textarea
                         value={opt}
                         onChange={e => handleOptionChange(idx, e.target.value)}
                         className={clsx(
-                          "w-full p-2 border rounded-lg",
+                          "w-full p-2 border rounded-lg font-mono text-sm min-h-[42px] resize-y",
                           questionForm.correctOption === opt && opt !== '' ? "border-green-500 ring-1 ring-green-500 bg-green-50" : ""
                         )}
-                        placeholder={`Opção ${String.fromCharCode(65 + idx)}`}
+                        placeholder={`Opção ${String.fromCharCode(65 + idx)} (suporta LaTeX/Img)`}
+                        rows={2}
                       />
                       <button
                         onClick={() => setQuestionForm({ ...questionForm, correctOption: opt })}
                         className={clsx(
-                          "p-2 rounded-lg border",
+                          "p-2 rounded-lg border h-[42px] flex items-center justify-center shrink-0",
                           questionForm.correctOption === opt && opt !== '' 
                             ? "bg-green-500 text-white border-green-500" 
                             : "bg-white text-gray-400 border-gray-300 hover:bg-gray-50"
@@ -353,18 +355,73 @@ const AdminExamEditorPage = () => {
                         <Check size={20} />
                       </button>
                     </div>
+                    {/* Preview da Opção */}
+                    {opt && (
+                      <div className="mt-2 p-2 bg-gray-50 rounded border text-sm min-h-[30px] flex items-center">
+                        <div className="w-full overflow-x-auto">
+                          <RichTextRenderer content={opt} />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Explicação (Opcional)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Explicação (Opcional)</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowExplanationHelp(!showExplanationHelp)}
+                    className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                  >
+                    <HelpCircle size={14} />
+                    Ajuda de Sintaxe
+                  </button>
+                </div>
+                {showExplanationHelp && (
+                  <div className="mb-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs space-y-1">
+                    <p className="font-bold text-blue-900">Matemática LaTeX:</p>
+                    <p><code className="bg-white px-1 rounded">$x^2 + 5$</code> → fórmula em linha</p>
+                    <p><code className="bg-white px-1 rounded">$$\frac{'{a}'}{'{b}'}$$</code> → fórmula em bloco</p>
+                    <p className="font-bold text-blue-900 mt-2">Imagens:</p>
+                    <p><code className="bg-white px-1 rounded">![descrição](url-da-imagem)</code></p>
+                  </div>
+                )}
                 <textarea
                   value={questionForm.explanation}
                   onChange={e => setQuestionForm({ ...questionForm, explanation: e.target.value })}
-                  className="w-full p-2 border rounded-lg h-20"
-                  placeholder="Explique por que a resposta está correta..."
+                  className="w-full p-2 border rounded-lg h-24 font-mono text-sm"
+                  placeholder="Explique por que a resposta está correta... Suporta LaTeX e Imagens"
                 />
+                
+                {showExplanationPreview && questionForm.explanation && (
+                  <div className="mt-2 p-3 bg-gray-50 rounded border">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs text-gray-500 font-medium">Pré-visualização da Explicação:</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowExplanationPreview(false)}
+                        className="text-xs text-gray-400 hover:text-gray-600"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      <RichTextRenderer content={questionForm.explanation} />
+                    </div>
+                  </div>
+                )}
+                {!showExplanationPreview && questionForm.explanation && (
+                  <button
+                    type="button"
+                    onClick={() => setShowExplanationPreview(true)}
+                    className="mt-1 text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                  >
+                    <Eye size={14} />
+                    Mostrar Pré-visualização
+                  </button>
+                )}
               </div>
 
               <div className="flex justify-end gap-2">

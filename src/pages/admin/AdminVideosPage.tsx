@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { createVideoLesson, deleteVideoLesson, getVideoLessons } from '../../services/dbService';
+import { createVideoLesson, deleteVideoLesson, getVideoLessons, updateVideoLesson } from '../../services/dbService';
 import { VideoLesson } from '../../types/video';
-import { Plus, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Edit, X } from 'lucide-react';
 import { extractYoutubeId, getYoutubeThumbnail } from '../../lib/youtubeUtils';
 import { useModal, useToast } from '../../hooks/useNotifications';
 import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
 import { getErrorMessage } from '../../utils/errorMessages';
+import clsx from 'clsx';
 
 const AdminVideosPage = () => {
   const [videos, setVideos] = useState<VideoLesson[]>([]);
@@ -22,6 +23,7 @@ const AdminVideosPage = () => {
   const [subject, setSubject] = useState('Matemática');
   const [videoType, setVideoType] = useState<'theory' | 'exercise'>('theory');
   const [order, setOrder] = useState(0);
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   // Preview State
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -57,30 +59,60 @@ const AdminVideosPage = () => {
     try {
       // Note: thumbnail is generated in dbService now, but we show preview here
       
-      await createVideoLesson({
-        title,
-        description,
-        youtubeUrl,
-        subject,
-        videoType,
-        order
-      });
+      if (editingId) {
+        await updateVideoLesson(editingId, {
+          title,
+          description,
+          youtubeUrl,
+          subject,
+          videoType,
+          order
+        });
+        showSuccess('Aula atualizada com sucesso!');
+      } else {
+        await createVideoLesson({
+          title,
+          description,
+          youtubeUrl,
+          subject,
+          videoType,
+          order
+        });
+        showSuccess('Aula adicionada com sucesso!');
+      }
       
-      // Reset form
-      setTitle('');
-      setDescription('');
-      setYoutubeUrl('');
-      setOrder(prev => prev + 1); // Auto increment order
+      handleCancelEdit(); // Reset form
       
       // Refresh list
       await fetchVideos();
-      showSuccess('Aula adicionada com sucesso!');
+      
     } catch (error) {
-      console.error("Error creating video:", error);
+      console.error("Error creating/updating video:", error);
       showError(getErrorMessage(error));
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleEdit = (video: VideoLesson) => {
+    setEditingId(video.id);
+    setTitle(video.title);
+    setDescription(video.description);
+    setYoutubeUrl(video.youtubeUrl);
+    setSubject(video.subject);
+    setVideoType(video.videoType);
+    setOrder(video.order);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setTitle('');
+    setDescription('');
+    setYoutubeUrl('');
+    setOrder(prev => editingId ? videos.length + 1 : prev); // Reset order logic slightly simplistic but fine
+    setSubject('Matemática');
+    setVideoType('theory');
   };
 
   const handleDelete = async (id: string) => {
@@ -113,9 +145,19 @@ const AdminVideosPage = () => {
         {/* Form Section */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-8">
-            <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Plus size={20} />
-              Adicionar Nova Aula
+            <h2 className="font-bold text-gray-800 mb-4 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                {editingId ? <Edit size={20} /> : <Plus size={20} />}
+                {editingId ? 'Editar Aula' : 'Adicionar Nova Aula'}
+              </span>
+              {editingId && (
+                <button 
+                  onClick={handleCancelEdit}
+                  className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                >
+                  <X size={14} /> Cancelar
+                </button>
+              )}
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -206,10 +248,13 @@ const AdminVideosPage = () => {
               <button
                 type="submit"
                 disabled={isCreating || !previewId}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className={clsx(
+                  "w-full text-white py-2 rounded-lg font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2",
+                  editingId ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"
+                )}
               >
-                {isCreating ? <RefreshCw className="animate-spin" size={20} /> : <Plus size={20} />}
-                {isCreating ? 'Adicionando...' : 'Adicionar Aula'}
+                {isCreating ? <RefreshCw className="animate-spin" size={20} /> : (editingId ? <Edit size={20} /> : <Plus size={20} />)}
+                {isCreating ? (editingId ? 'Atualizando...' : 'Adicionando...') : (editingId ? 'Atualizar Aula' : 'Adicionar Aula')}
               </button>
             </form>
           </div>
@@ -254,13 +299,22 @@ const AdminVideosPage = () => {
                       <p className="text-sm text-gray-500 line-clamp-1">{video.description}</p>
                     </div>
                     
-                    <button
-                      onClick={() => handleDelete(video.id)}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors self-start"
-                      title="Excluir aula"
-                    >
-                      <Trash2 size={20} />
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => handleEdit(video)}
+                        className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Editar aula"
+                      >
+                        <Edit size={20} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(video.id)}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Excluir aula"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
