@@ -106,5 +106,15 @@ service cloud.firestore {
       // Admin também pode editar tudo
       allow update: if isAdmin() || (resource.data.status == 'active');
     }
+
+    // Downloads: Public read, Admin write, User increment
+    match /downloads/{downloadId} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        request.auth != null && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['downloadCount'])
+      );
+    }
   }
 }

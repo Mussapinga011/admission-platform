@@ -1,6 +1,23 @@
 # 📚 Guia de Comandos Git e NPM
 
 ## 🔧 Comandos Git
+npx firebase deploy --only hosting
+
+npm run build
+
+npx firebase login
+npx firebase deploy
+
+Para subir as regras do Banco de Dados (Isso resolve seu erro de permissão):
+
+npx firebase deploy --only firestore:rules
+Para subir o site (Hosting):
+
+
+npx firebase deploy --only hosting
+
+### Subir banco de dados :
+# npx firebase deploy --only firestore
 
 ### Configuração Inicial
 

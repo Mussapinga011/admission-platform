@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllUsers, updateUserProfile, createUserProfile } from '../../services/dbService';
-import { deleteUserCompletely } from '../../services/cloudFunctions';
+import { getAllUsers, updateUserProfile, createUserProfile, deleteUserProfile } from '../../services/dbService';
 import { UserProfile } from '../../types/user';
 import { Search, Edit, X, Save, Trash2, Shield, User, Plus } from 'lucide-react';
 import { useModal, useToast } from '../../hooks/useNotifications';
@@ -135,7 +134,7 @@ const AdminUsersPage = () => {
   const handleDeleteUser = async (uid: string) => {
     showConfirm(
       'Excluir Usuário',
-      'Tem certeza que deseja excluir este usuário? Isso removerá COMPLETAMENTE a conta (Firestore + Authentication). Esta ação não pode ser desfeita.',
+      'Tem certeza que deseja excluir este usuário? Isso removerá o seu perfil da plataforma. Nota: A conta de login permanecerá ativa no Firebase Auth (devido ao plano gratuito), mas o usuário não terá mais acesso aos dados e não aparecerá no sistema.',
       async () => {
         try {
            if (activeTab === 'admins') {
@@ -144,10 +143,10 @@ const AdminUsersPage = () => {
              setUsers(users.map(u => u.uid === uid ? { ...u, role: 'user' } : u));
              showSuccess('Administrador removido (rebaixado a usuário).');
            } else {
-             // Delete user completely using Cloud Function
-             await deleteUserCompletely(uid);
+             // Delete user profile directly from Firestore
+             await deleteUserProfile(uid);
              setUsers(users.filter(u => u.uid !== uid));
-             showSuccess('Usuário excluído completamente (Firestore + Authentication).');
+             showSuccess('Perfil do usuário excluído com sucesso!');
            }
         } catch (error) {
            showError('Erro ao excluir usuário: ' + getErrorMessage(error));
