@@ -1,50 +1,70 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
-import { getSessionsByDiscipline, getUserProgressByDiscipline } from '../services/practiceService';
-import { PracticeSession, UserSessionProgress } from '../types/practice';
-import { Star, Trophy, Gift, ArrowLeft, BookOpen, Lock } from 'lucide-react';
+import { getSessionsByDiscipline, getUserProgressByDiscipline, getSectionsByDiscipline, getSessionsBySection } from '../services/practiceService';
+import { PracticeSession, UserSessionProgress, PracticeSection } from '../types/practice';
+import { Star, Trophy, Gift, ArrowLeft, BookOpen, Lock, CheckCircle, MapPin } from 'lucide-react';
 import clsx from 'clsx';
+import { useContentStore } from '../stores/useContentStore';
 
 const PracticePathPage = () => {
-  const { disciplineId } = useParams<{ disciplineId: string }>();
+  const { disciplineId, sectionId } = useParams<{ disciplineId: string; sectionId?: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   
+  const currentLevelRef = useRef<HTMLDivElement>(null);
+
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
-  const [progress, setProgress] = useState<Record<string, UserSessionProgress>>({});
+  const [section, setSection] = useState<PracticeSection | null>(null);
   const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState<Record<string, UserSessionProgress>>({});
   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   useEffect(() => {
-    if (!user || !disciplineId) return;
+    if (disciplineId && user) {
+      loadData();
+    }
+  }, [disciplineId, sectionId, user]);
 
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [sessionsData, progressData] = await Promise.all([
-          getSessionsByDiscipline(disciplineId),
-          getUserProgressByDiscipline(user.uid, disciplineId)
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      // 1. Fetch User Progress
+      const userProg = await getUserProgressByDiscipline(user!.uid, disciplineId!);
+      setProgress(userProg);
+
+      // 2. Fetch Content
+      if (sectionId) {
+        // New Mode: Single Section
+        const [sectSessions, allSections] = await Promise.all([
+           getSessionsBySection(disciplineId!, sectionId),
+           getSectionsByDiscipline(disciplineId!)
         ]);
-        setSessions(sessionsData);
-        setProgress(progressData);
-      } catch (error) {
-        console.error('Error fetching practice data:', error);
-      } finally {
-        setLoading(false);
+        setSessions(sectSessions);
+        const currentSection = allSections.find(s => s.id === sectionId);
+        setSection(currentSection || null);
+      } else {
+        // Legacy Mode: Fetch all sessions (fallback)
+        // Ideally we should redirect to Sections Page if no sectionId, but let's keep it safe
+        const allSessions = await getSessionsByDiscipline(disciplineId!);
+        setSessions(allSessions);
       }
-    };
 
-    fetchData();
-  }, [user, disciplineId]);
+    } catch (error) {
+      console.error("Error loading path:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    // Scroll to current level after loading
+    if (!loading && currentLevelRef.current) {
+      setTimeout(() => {
+        currentLevelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 500);
+    }
+  }, [loading]);
 
   // Define position offsets for the snake effect
   const getOffset = (index: number) => {
@@ -52,134 +72,152 @@ const PracticePathPage = () => {
     return pattern[index % pattern.length];
   };
 
+  // Determine global completion status to unlock next items
+  // Logic simplified: index 0 is always unlocked.
+  // Index N is unlocked if N-1 is COMPLETED.
+  const getUnlockStatus = (sessionId: string, index: number) => {
+      if (index === 0) return true;
+      const prevSession = sessions[index - 1];
+      // Check if previous session is completed in user progress
+      return !!progress[prevSession.id]?.completed;
+  };
+
+  if (loading) return (
+     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+     </div>
+  );
+
   return (
-    <div className="min-h-screen pb-12">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 px-4 py-4 flex items-center gap-4">
-        <button onClick={() => navigate('/disciplines')} className="p-2 hover:bg-gray-100 rounded-full">
-          <ArrowLeft size={24} className="text-gray-600" />
-        </button>
-        <div>
-          <h1 className="text-xl font-bold text-gray-800">Caminho de Aprendizado</h1>
-          <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Unidade 1 • Introdução</p>
+    <div className="min-h-screen pb-20 bg-gray-50">
+      {/* Stick Header (Green as per image) */}
+      <div className="bg-[#58CC02] border-b border-[#46a302] sticky top-0 z-30 px-4 py-4 flex items-center justify-between shadow-md text-white">
+        <div className="flex items-center gap-4">
+           <button 
+             onClick={() => navigate(`/practice/${disciplineId}`)} 
+             className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+           >
+             <ArrowLeft size={24} className="text-white" />
+           </button>
+           <div>
+             <h2 className="font-black text-xs uppercase tracking-widest text-green-100 opacity-80">
+                {section?.title || 'Trilha de Aprendizado'}
+             </h2>
+             <h1 className="font-bold text-lg leading-tight">
+                {section?.description || 'Vamos aprender!'}
+             </h1>
+           </div>
         </div>
-        <button className="ml-auto bg-primary/10 text-primary px-4 py-2 rounded-xl font-bold flex items-center gap-2">
-          <BookOpen size={20} />
-          GUIA
+        <button className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all">
+           <BookOpen size={16} /> Guia
         </button>
       </div>
 
-      {/* Snake Path */}
-      <div className="max-w-md mx-auto mt-8 px-4 flex flex-col items-center gap-8 relative">
-        {sessions.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200 w-full">
-            <div className="text-6xl mb-4">🚧</div>
-            <h2 className="text-xl font-bold text-gray-800">Em Construção</h2>
-            <p className="text-gray-500">Ainda não há módulos para esta disciplina.</p>
-          </div>
-        ) : (
-          sessions.map((session, index) => {
+      <div className="max-w-md mx-auto relative pt-12 pb-20 px-4">
+          
+        {/* Snake Path */}
+        <div className="flex flex-col items-center gap-6">
+          {sessions.map((session, index) => {
             const isCompleted = progress[session.id]?.completed;
-            const isAvailable = index === 0 || progress[sessions[index-1].id]?.completed;
-            const offset = getOffset(index);
+            const isUnlocked = getUnlockStatus(session.id, index);
+            const isCurrent = isUnlocked && !isCompleted;
             
+            // Snake offset
+            const offset = getOffset(index);
+
             return (
               <div 
                 key={session.id} 
-                className="relative flex flex-col items-center group"
+                className="relative flex flex-col items-center group mb-4"
                 style={{ transform: `translateX(${offset}px)` }}
+                ref={isCurrent ? currentLevelRef : null}
               >
-                {/* Floating "Começar" tag */}
-                {/* Mascot & Floating Action */}
-                {isAvailable && !isCompleted && (
-                  <div className="absolute -top-20 -right-24 z-20 flex flex-col items-start animate-bounce-subtle pointer-events-none">
-                     {/* Speech Bubble */}
-                     <div className="bg-white border-2 border-gray-200 px-4 py-2 rounded-xl rounded-bl-none shadow-md mb-1 relative transform -translate-x-4">
-                        <span className="font-black text-gray-700 text-sm whitespace-nowrap uppercase tracking-wide text-primary">Vamos lá!</span>
+                {/* Floating "Start" tooltip for current item */}
+                {isCurrent && (
+                  <div className="absolute -top-12 animate-bounce z-20">
+                     <div className="bg-white text-primary font-bold text-xs uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-md border-b-4 border-gray-100">
+                        Começar
                      </div>
-                     {/* Mascot Image */}
-                     <img src="/lumo_mascot.png" className="w-24 h-24 object-contain drop-shadow-xl transform -scale-x-100" alt="Mascote" />
+                     <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-white mx-auto"></div>
                   </div>
                 )}
 
-                {/* Node */}
-                <button
-                  disabled={!isAvailable}
-                  onClick={() => {
-                    if (isAvailable) {
-                      if (!user?.isPremium && index >= 3) {
-                         setShowPremiumModal(true);
-                      } else {
-                         navigate(`/practice/${disciplineId}/session/${session.id}`);
+                {/* The Node Button */}
+                <div className="relative">
+                  <button
+                    disabled={!isUnlocked}
+                    onClick={() => {
+                      if (isUnlocked) {
+                          // Navigate to quiz with explicit sectionId if available
+                          if (sectionId) {
+                             navigate(`/practice/${disciplineId}/section/${sectionId}/session/${session.id}`);
+                          } else {
+                             navigate(`/practice/${disciplineId}/session/${session.id}`);
+                          }
                       }
-                    }
-                  }}
-                  className={clsx(
-                    "w-20 h-20 rounded-full flex items-center justify-center transition-all shadow-[0_8px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-2",
-                    isCompleted 
-                      ? "bg-green-500 hover:bg-green-400" 
-                      : isAvailable 
-                        ? (!user?.isPremium && index >= 3)
-                          ? "bg-gray-800 hover:bg-gray-700" // Premium Locked Color
-                          : "bg-primary hover:bg-primary-hover"
-                        : "bg-gray-300 cursor-not-allowed"
-                  )}
-                >
-                  {(!user?.isPremium && index >= 3) ? (
-                     <Lock size={32} className="text-yellow-400" />
-                  ) : index % 3 === 2 ? (
-                    <Gift size={32} className="text-white" />
-                  ) : index % 5 === 0 ? (
-                    <Trophy size={32} className="text-white" />
-                  ) : (
-                    <Star size={32} className={clsx("text-white", isCompleted && "fill-white")} />
-                  )}
-                </button>
-
-                {/* Label (Mobile only or tooltip) */}
-                <div className="mt-2 text-center max-w-[120px]">
-                  <p className={clsx(
-                    "text-sm font-bold uppercase",
-                    isAvailable ? "text-gray-700" : "text-gray-400"
-                  )}>
-                    {session.title}
-                  </p>
+                    }}
+                    className={clsx(
+                      "relative w-20 h-20 rounded-full flex items-center justify-center transition-all z-10",
+                      // 3D Effect logic: border-b-4 or box-shadow
+                      "shadow-[0_6px_0_0_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-[6px]",
+                      isCompleted
+                          ? "bg-yellow-400 shadow-yellow-600" 
+                          : isCurrent
+                            ? "bg-[#58CC02] shadow-[#46a302] ring-4 ring-green-100" 
+                            : "bg-[#e5e5e5] shadow-[#cecece] text-[#afafaf] cursor-not-allowed" 
+                    )}
+                  >
+                    {isCompleted ? (
+                       <Star size={32} className="text-white fill-white" />
+                    ) : isCurrent ? (
+                       <Star size={32} className="text-white fill-white animate-pulse" />
+                    ) : (
+                       <Lock size={28} />
+                    )}
+                  </button>
                 </div>
+                
+                {/* Mascot (Owl) next to current element - matching image 1 */}
+                {isCurrent && (
+                   <div className="absolute top-1/2 -translate-y-1/2 left-24 w-24 h-24 animate-fade-in z-0 pointer-events-none">
+                      <div className="text-6xl absolute -top-4 left-4 animate-bounce delay-75">🦉</div>
+                   </div>
+                )}
               </div>
             );
-          })
-        )}
+          })}
+        </div>
+        
+        {/* End Path */}
+        <div className="text-center mt-12">
+            <Trophy size={40} className="text-yellow-600 mx-auto mb-2 opacity-50" />
+            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Fim da Unidade</p>
+        </div>
+
       </div>
 
-      {/* Premium Trigger Modal */}
+      {/* Premium Modal */}
       {showPremiumModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl w-full max-w-sm p-6 text-center transform transition-all scale-100 shadow-2xl">
-             <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Lock size={40} className="text-yellow-600" />
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 text-center shadow-2xl">
+             <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lock size={32} className="text-yellow-600" />
              </div>
-             <h2 className="text-2xl font-black text-gray-800 mb-2">Sessão Bloqueada</h2>
-             <p className="text-gray-600 font-medium mb-6 leading-relaxed">
-               Você já avançou muito 👏 <br/>
-               As próximas sessões são para quem quer <span className="text-primary font-bold">dominar a prova</span>.
+             <h2 className="text-xl font-black text-gray-800 mb-2">Conteúdo Exclusivo</h2>
+             <p className="text-gray-600 text-sm font-medium mb-6">
+               Desbloqueie todas as etapas e acelere sua aprovação.
              </p>
-             
-             <button 
-               onClick={() => {
-                 // Open Upgrade Page or Stripe Integration (placeholder)
-                 alert("Redirecionando para página de planos...");
-                 setShowPremiumModal(false);
-               }}
-               className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-black py-4 rounded-xl shadow-lg shadow-orange-200 mb-3 hover:scale-105 transition-transform"
-             >
-               DESBLOQUEAR TUDO
-             </button>
-             
              <button 
                onClick={() => setShowPremiumModal(false)}
-               className="text-gray-400 font-bold text-sm uppercase hover:text-gray-600"
+               className="w-full bg-primary text-white font-bold py-3 rounded-xl mb-3"
              >
-               Agora não
+               Virar Premium
+             </button>
+             <button 
+               onClick={() => setShowPremiumModal(false)}
+               className="text-gray-400 font-bold text-xs uppercase"
+             >
+               Talvez depois
              </button>
           </div>
         </div>

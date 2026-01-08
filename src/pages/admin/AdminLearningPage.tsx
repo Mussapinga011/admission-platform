@@ -85,7 +85,7 @@ const AdminLearningPage = () => {
         {filteredDisciplines.map((discipline) => (
           <div
             key={discipline.id}
-            onClick={() => navigate(`/admin/learning/${discipline.id}/sessions`)}
+            onClick={() => navigate(`/admin/learning/${discipline.id}/sections`)}
             className={clsx(
               "bg-white rounded-3xl border-2 transition-all cursor-pointer group overflow-hidden relative",
               discipline.isActive ? "border-gray-100 hover:border-primary hover:shadow-xl" : "border-gray-200 opacity-75 grayscale bg-gray-50"

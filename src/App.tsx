@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage';
 import LearningPage from './pages/LearningPage';
 import PracticePathPage from './pages/PracticePathPage';
 import PracticeQuizPage from './pages/PracticeQuizPage';
+import PracticeSectionsPage from './pages/PracticeSectionsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import { useAuthStore } from './stores/useAuthStore';
@@ -41,6 +42,7 @@ const AdminGroupsPage = lazy(() => import('./pages/admin/AdminGroupsPage'));
 const AdminDownloadsPage = lazy(() => import('./pages/admin/AdminDownloadsPage'));
 const AdminUniversitiesPage = lazy(() => import('./pages/admin/AdminUniversitiesPage'));
 const AdminLearningPage = lazy(() => import('./pages/admin/AdminLearningPage'));
+const AdminLearningSectionsPage = lazy(() => import('./pages/admin/AdminLearningSectionsPage'));
 const AdminLearningSessionsPage = lazy(() => import('./pages/admin/AdminLearningSessionsPage'));
 const AdminLearningQuestionsPage = lazy(() => import('./pages/admin/AdminLearningQuestionsPage'));
 const AdminDisciplinesPage = lazy(() => import('./pages/admin/AdminDisciplinesPage'));
@@ -178,10 +180,15 @@ function App() {
           
           <Route path="/practice/:disciplineId" element={
             <ProtectedRoute>
+              <PracticeSectionsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/practice/:disciplineId/section/:sectionId" element={
+            <ProtectedRoute>
               <PracticePathPage />
             </ProtectedRoute>
           } />
-          <Route path="/practice/:disciplineId/session/:sessionId" element={
+          <Route path="/practice/:disciplineId/section/:sectionId/session/:sessionId" element={
             <ProtectedRoute>
               <PracticeQuizPage />
             </ProtectedRoute>
@@ -273,6 +280,22 @@ function App() {
             </AdminRoute>
           } />
           <Route path="/admin/learning/:disciplineId/sessions/:sessionId/questions" element={
+            <AdminRoute>
+              <AdminLearningQuestionsPage />
+            </AdminRoute>
+          } />
+          
+          <Route path="/admin/learning/:disciplineId/sections" element={
+            <AdminRoute>
+              <AdminLearningSectionsPage />
+            </AdminRoute>
+          } />
+           <Route path="/admin/learning/:disciplineId/sections/:sectionId/sessions" element={
+            <AdminRoute>
+              <AdminLearningSessionsPage />
+            </AdminRoute>
+          } />
+           <Route path="/admin/learning/:disciplineId/sections/:sectionId/sessions/:sessionId/questions" element={
             <AdminRoute>
               <AdminLearningQuestionsPage />
             </AdminRoute>

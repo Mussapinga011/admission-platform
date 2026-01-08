@@ -10,9 +10,10 @@ import Toast from '../../components/Toast';
 import RichTextRenderer from '../../components/RichTextRenderer';
 
 const AdminLearningQuestionsPage = () => {
-  const { disciplineId, sessionId } = useParams<{ disciplineId: string, sessionId: string }>();
+  const { disciplineId, sessionId, sectionId } = useParams<{ disciplineId: string, sessionId: string, sectionId?: string }>();
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
+  // ... state ...
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
@@ -31,7 +32,7 @@ const AdminLearningQuestionsPage = () => {
   const fetchQuestions = async () => {
     setLoading(true);
     try {
-      const data = await getQuestionsBySession(disciplineId!, sessionId!);
+      const data = await getQuestionsBySession(disciplineId!, sessionId!, sectionId);
       setQuestions(data);
     } catch (error) {
       showError('Erro ao carregar questões');
@@ -50,7 +51,7 @@ const AdminLearningQuestionsPage = () => {
         sessionId,
         xp: editingQuestion.xp || 10,
         type: editingQuestion.type || 'multiple_choice'
-      });
+      }, sectionId);
       showSuccess('Questão salva!');
       setIsModalOpen(false);
       fetchQuestions();
@@ -62,7 +63,7 @@ const AdminLearningQuestionsPage = () => {
   const handleDelete = (questionId: string) => {
     showConfirm('Excluir Questão', 'Tem certeza?', async () => {
       try {
-        await deletePracticeQuestion(disciplineId!, sessionId!, questionId);
+        await deletePracticeQuestion(disciplineId!, sessionId!, questionId, sectionId);
         showSuccess('Excluída!');
         fetchQuestions();
       } catch (error) {
@@ -127,7 +128,7 @@ const AdminLearningQuestionsPage = () => {
             sessionId,
             xp: q.xp || 10,
             type: 'multiple_choice'
-          })
+          }, sectionId)
         )
       );
       

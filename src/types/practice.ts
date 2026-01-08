@@ -9,9 +9,19 @@ export interface PracticeDiscipline {
   createdAt: Timestamp;
 }
 
+export interface PracticeSection {
+  id: string;
+  disciplineId: string;
+  title: string;
+  description: string;
+  order: number;
+  isPremium?: boolean;
+}
+
 export interface PracticeSession {
   id: string;
   disciplineId: string;
+  sectionId?: string; // New field for grouping
   title: string;
   order: number;
   level: number;
@@ -19,6 +29,7 @@ export interface PracticeSession {
   quizIds: string[]; // Reference to questions
   xpReward: number;
   createdAt: Timestamp;
+  type?: 'quiz' | 'review' | 'challenge';
 }
 
 export interface PracticeQuestion {
@@ -36,6 +47,7 @@ export interface PracticeQuestion {
 export interface UserSessionProgress {
   sessionId: string;
   disciplineId: string;
+  sectionId?: string; // Helpful for tracking completion of sections
   completed: boolean;
   score: number;
   xpEarned: number;

@@ -4,9 +4,44 @@ import { useContentStore } from '../stores/useContentStore';
 import { ArrowRight, GraduationCap } from 'lucide-react';
 import clsx from 'clsx';
 
+const DisciplineCard = ({ discipline }: { discipline: any }) => {
+  const navigate = useNavigate();
+
+  return (
+    <button 
+      onClick={() => navigate(`/practice/${discipline.id}`)}
+      className="bg-white rounded-3xl shadow-sm border-2 border-gray-100 hover:border-primary hover:shadow-xl transition-all text-left group overflow-hidden flex flex-col h-full w-full"
+    >
+      <div className={clsx("h-32 flex items-center justify-center text-5xl transition-transform group-hover:scale-110", discipline.color)}>
+        {discipline.icon}
+      </div>
+      <div className="p-6 flex-1 flex flex-col w-full">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xl font-black text-gray-800 tracking-tight">{discipline.title}</h2>
+          <div className="bg-primary/10 p-2 rounded-xl">
+             <GraduationCap className="text-primary" size={20} />
+          </div>
+        </div>
+        
+        <p className="text-gray-500 font-medium text-xs mb-6 flex-1">
+          Domine a matéria do básico ao avançado em módulos interativos.
+        </p>
+        
+        <div className="flex items-center justify-between mt-auto">
+          <span className="font-black text-xs uppercase tracking-widest text-primary transition-colors">
+            INICIAR JORNADA
+          </span>
+          <div className="p-2 rounded-full bg-primary shadow-blue-200 group-hover:translate-x-1 transition-all text-white">
+            <ArrowRight size={18} />
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+};
+
 const LearningPage = () => {
   const { disciplines, universities, fetchContent, loading } = useContentStore();
-  const navigate = useNavigate();
   const [selectedUniversityId, setSelectedUniversityId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,36 +75,6 @@ const LearningPage = () => {
     return acc;
   }, []);
 
-  const DisciplineCard = ({ discipline }: { discipline: any }) => (
-    <button 
-      onClick={() => navigate(`/practice/${discipline.id}`)}
-      className="bg-white rounded-3xl shadow-sm border-2 border-gray-100 hover:border-primary hover:shadow-xl transition-all text-left group overflow-hidden flex flex-col h-full"
-    >
-      <div className={clsx("h-40 flex items-center justify-center text-6xl transition-transform group-hover:scale-110", discipline.color)}>
-        {discipline.icon}
-      </div>
-      <div className="p-6 flex-1 flex flex-col">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-2xl font-black text-gray-800 tracking-tight">{discipline.title}</h2>
-          <div className="bg-primary/10 p-2 rounded-xl">
-            <GraduationCap className="text-primary" size={20} />
-          </div>
-        </div>
-        <p className="text-gray-500 font-medium text-sm mb-6 flex-1">
-          Explore módulos progressivos de {discipline.title} e domine a matéria do básico ao avançado.
-        </p>
-        <div className="flex items-center justify-between mt-auto">
-          <span className="text-primary font-black text-xs uppercase tracking-widest">
-            Iniciar Jornada
-          </span>
-          <div className="bg-primary text-white p-2 rounded-full group-hover:translate-x-1 transition-transform">
-            <ArrowRight size={18} />
-          </div>
-        </div>
-      </div>
-    </button>
-  );
-
   return (
     <div className="max-w-6xl mx-auto space-y-10 pb-20">
       <div className="text-center space-y-4">
@@ -77,7 +82,7 @@ const LearningPage = () => {
           Modo <span className="text-primary">Aprender</span>
         </h1>
         <p className="text-gray-500 text-lg font-medium max-w-2xl mx-auto">
-          Cursos universais organizados por níveis. Aprenda no seu ritmo, como se estivesse jogando.
+          Escolha uma disciplina e comece sua jornada rumo à aprovação.
         </p>
       </div>
 
